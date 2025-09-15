@@ -1,0 +1,6 @@
+.env
+token.json
+credentials.json
+/vendor/
+/backups/
+composer.lock

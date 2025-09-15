@@ -1,0 +1,17 @@
+{
+    "name": "blackamda/auto_db_vault",
+    "version": "1.0.0",
+    "description": "Hourly backups for multiple MySQL databases with 3-day daily retention + Google Drive upload",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "google/apiclient": "^2.15",
+        "vlucas/phpdotenv": "^5.6",
+        "guzzlehttp/guzzle": "^7.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "AutoDBVault\\": "src/"
+        }
+    }
+}
