@@ -4,15 +4,18 @@ namespace AutoDBVault\Storage;
 use Google_Client;
 use Google_Service_Drive;
 use Google_Service_Drive_DriveFile;
+use Google\Http\MediaFileUpload;
 
 final class DriveStorage
 {
+    private Google_Client $client;
     private Google_Service_Drive $drive;
     private string $topFolderName;
     private ?string $topFolderId = null;
 
     public function __construct(Google_Client $client, string $topFolderName)
     {
+        $this->client = $client;
         $this->drive = new Google_Service_Drive($client);
         $this->topFolderName = $topFolderName;
     }
@@ -68,13 +71,32 @@ final class DriveStorage
             'name' => $filename,
             'parents' => [$folderId]
         ]);
-        $created = $this->drive->files->create($file, [
-            'data' => file_get_contents($localPath),
-            'mimeType' => 'application/gzip',
-            'uploadType' => 'media',
-            'fields' => 'id'
-        ]);
-        return $created->getId();
+
+        $chunkSize = 5 * 1024 * 1024; // 5 MB
+        $fileSize  = filesize($localPath);
+
+        $this->client->setDefer(true);
+        $request = $this->drive->files->create($file, ['fields' => 'id']);
+        $this->client->setDefer(false);
+
+        $media = new MediaFileUpload(
+            $this->client,
+            $request,
+            'application/gzip',
+            null,
+            true,
+            $chunkSize
+        );
+        $media->setFileSize($fileSize);
+
+        $handle  = fopen($localPath, 'rb');
+        $created = false;
+        while (!$created && !feof($handle)) {
+            $created = $media->nextChunk(fread($handle, $chunkSize));
+        }
+        fclose($handle);
+
+        return $created['id'];
     }
 
     public function listFiles(string $db): array
